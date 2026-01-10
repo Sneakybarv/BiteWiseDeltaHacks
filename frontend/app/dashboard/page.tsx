@@ -198,7 +198,7 @@ export default function DashboardPage() {
 
         {/* Recent Receipts */}
         <div className="card">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between text-black items-center mb-6">
             <h2 className="text-2xl font-semibold">Recent Receipts</h2>
             <div className="flex gap-2">
               <button className="btn-secondary text-sm">This Week</button>
@@ -206,7 +206,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="space-y-4" role="list" aria-label="Recent receipts">
+          <div className="space-y-4 text-black" role="list" aria-label="Recent receipts">
             {mockRecentReceipts.map((receipt) => (
               <div
                 key={receipt.id}
@@ -245,24 +245,24 @@ export default function DashboardPage() {
         {/* Quick Actions */}
         <div className="mt-8 grid md:grid-cols-3 gap-6">
           <Link href="/profile" className="card hover:shadow-xl transition-shadow text-center">
-            <div className="text-4xl mb-3">👤</div>
-            <h3 className="font-semibold text-lg mb-2">Update Profile</h3>
+            <div className="text-6xl">👤</div>
+            <h3 className="font-semibold text-lg">Update Profile</h3>
             <p className="text-gray-600 text-sm">
               Set your allergen alerts and dietary preferences
             </p>
           </Link>
 
           <Link href="/insights" className="card hover:shadow-xl transition-shadow text-center">
-            <div className="text-4xl mb-3">📊</div>
-            <h3 className="font-semibold text-lg mb-2">Weekly Insights</h3>
+            <div className="text-6xl">📊</div>
+            <h3 className="font-semibold text-lg">Weekly Insights</h3>
             <p className="text-gray-600 text-sm">
               View detailed nutrition and spending analysis
             </p>
           </Link>
 
           <Link href="/upload" className="card hover:shadow-xl transition-shadow text-center">
-            <div className="text-4xl mb-3">📸</div>
-            <h3 className="font-semibold text-lg mb-2">Scan Receipt</h3>
+            <div className="text-6xl">📸</div>
+            <h3 className="font-semibold text-lg">Scan Receipt</h3>
             <p className="text-gray-600 text-sm">
               Add a new receipt to track your health
             </p>

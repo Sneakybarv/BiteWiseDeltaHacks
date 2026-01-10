@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { FiSun, FiMoon, FiType, FiEye } from 'react-icons/fi'
+import Link from 'next/link'
 
 export default function AccessibilityToolbar() {
   const [highContrast, setHighContrast] = useState(false)
@@ -83,7 +84,9 @@ export default function AccessibilityToolbar() {
       aria-label="Accessibility options"
     >
       <div className="container mx-auto flex flex-wrap items-center justify-between gap-4">
-        <span className="font-semibold text-sm">Accessibility:</span>
+        <Link href="/" className="font-bold text-lg md:text-2xl no-underline">
+          BiteWise
+        </Link>
 
         <div className="flex flex-wrap gap-2">
           <button

@@ -110,7 +110,7 @@ export default function UploadPage() {
 
         {/* Receipt type selector */}
         <div className="card mb-8">
-          <label className="block text-lg font-semibold mb-4">
+          <label className="block text-lg text-black font-semibold mb-4">
             Receipt Type
           </label>
           <div className="flex gap-4" role="radiogroup" aria-label="Receipt type">
@@ -124,9 +124,9 @@ export default function UploadPage() {
               role="radio"
               aria-checked={receiptType === 'grocery'}
             >
-              <div className="text-3xl mb-2">🛒</div>
+              <div className="text-3xl">🛒</div>
               <div className="font-semibold">Grocery</div>
-              <div className="text-sm text-gray-600">Supermarket, food store</div>
+              <div className="text-m text-gray-600">Supermarket, food store</div>
             </button>
 
             <button
@@ -139,9 +139,9 @@ export default function UploadPage() {
               role="radio"
               aria-checked={receiptType === 'restaurant'}
             >
-              <div className="text-3xl mb-2">🍽️</div>
+              <div className="text-3xl">🍽️</div>
               <div className="font-semibold">Restaurant</div>
-              <div className="text-sm text-gray-600">Dining, takeout, delivery</div>
+              <div className="text-m text-gray-600">Dining, takeout, delivery</div>
             </button>
           </div>
         </div>
@@ -273,9 +273,9 @@ export default function UploadPage() {
             <span>♿</span> Accessibility Tips
           </h3>
           <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Use keyboard: Tab to navigate, Enter/Space to activate buttons</li>
+            {/* <li>• Use keyboard: Tab to navigate, Enter/Space to activate buttons</li> */}
             <li>• Drag & drop or click the upload area to select a file</li>
-            <li>• On mobile, use camera button to take a photo directly</li>
+            {/* <li>• On mobile, use camera button to take a photo directly</li> */}
             <li>• Screen readers will announce processing status</li>
           </ul>
         </div>
