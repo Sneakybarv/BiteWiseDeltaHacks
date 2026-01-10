@@ -5,6 +5,9 @@ FastAPI backend with Gemini AI and MongoDB integration
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Request, Header
 import logging
+from logging.handlers import RotatingFileHandler
+import pathlib
+from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict
@@ -39,7 +42,27 @@ app = FastAPI(
 )
 
 # Configure simple logging for the backend
-logging.basicConfig(level=logging.INFO)
+LOG_DIR = pathlib.Path(os.getenv('LOG_DIR', 'logs'))
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# Console handler
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_fmt = logging.Formatter("%(asctime)s %(levelname)s %(name)s - %(message)s")
+console_handler.setFormatter(console_fmt)
+logger.addHandler(console_handler)
+
+# Rotating file handler
+file_handler = RotatingFileHandler(LOG_DIR / 'backend.log', maxBytes=5 * 1024 * 1024, backupCount=3)
+file_handler.setLevel(logging.INFO)
+file_handler.setFormatter(console_fmt)
+logger.addHandler(file_handler)
+
+# Reduce overly verbose logs from libraries
+logging.getLogger('asyncio').setLevel(logging.WARNING)
 
 
 # Get environment
@@ -521,6 +544,38 @@ async def get_user_profile_endpoint(
     except Exception as e:
         logging.getLogger(__name__).exception("Error fetching user profile: %s", e)
         raise HTTPException(status_code=500, detail="Failed to fetch user profile")
+
+
+@app.get('/api/debug/logs')
+async def get_debug_logs(request: Request, lines: int = 200, _: None = Depends(rate_limit_check)):
+    """Return the last `lines` from the backend log file. Development only."""
+    if ENVIRONMENT == 'production':
+        raise HTTPException(status_code=403, detail='Logs endpoint disabled in production')
+
+    log_file = LOG_DIR / 'backend.log'
+    if not log_file.exists():
+        return PlainTextResponse('No log file present', status_code=200)
+
+    try:
+        # Read last N lines efficiently
+        with log_file.open('rb') as f:
+            f.seek(0, os.SEEK_END)
+            end = f.tell()
+            size = 1024
+            data = b''
+            while len(data.splitlines()) <= lines and end > 0:
+                start = max(0, end - size)
+                f.seek(start)
+                chunk = f.read(end - start)
+                data = chunk + data
+                end = start
+                size *= 2
+
+        text = b'\n'.join(data.splitlines()[-lines:]).decode(errors='replace')
+        return PlainTextResponse(text)
+    except Exception as e:
+        logging.getLogger(__name__).exception('Failed to read log file: %s', e)
+        raise HTTPException(status_code=500, detail='Failed to read log file')
 
 
 @app.get("/api/users/{user_id}/receipts")
