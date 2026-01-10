@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import base64
 from security import (
     rate_limit_check,
@@ -21,6 +21,14 @@ from gemini_service import (
     extract_receipt_data,
     analyze_receipt_health,
     generate_receipt_summary_text
+)
+from database import (
+    Database,
+    create_receipt,
+    get_receipt_by_id,
+    get_all_receipts,
+    create_or_update_user_profile,
+    get_user_profile
 )
 
 app = FastAPI(
@@ -41,6 +49,17 @@ app.add_middleware(
     allow_headers=["*"],
     max_age=3600,  # Cache preflight requests for 1 hour
 )
+
+# Database lifecycle events
+@app.on_event("startup")
+async def startup_event():
+    """Connect to MongoDB on startup"""
+    await Database.connect_db()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Close MongoDB connection on shutdown"""
+    await Database.close_db()
 
 # Models
 class ReceiptItem(BaseModel):
@@ -110,15 +129,24 @@ async def upload_receipt(
 
         # Process receipt with Gemini Vision API
         receipt_data = await extract_receipt_data(image_bytes)
-        
+
         # Generate accessible text summary
         text_summary = await generate_receipt_summary_text(receipt_data)
-        
+
         # Add the text summary to the response
         receipt_data["text_summary"] = text_summary
         receipt_data["image_size_bytes"] = len(image_bytes)
         receipt_data["processed_at"] = datetime.now(timezone.utc).isoformat()
-        
+
+        # Try to store receipt in database (optional - app works without it)
+        try:
+            receipt_id = await create_receipt(receipt_data)
+            receipt_data["id"] = receipt_id
+        except Exception as db_error:
+            print(f"Database error (non-critical): {db_error}")
+            # Generate a temporary ID
+            receipt_data["id"] = f"temp_{datetime.now(timezone.utc).timestamp()}"
+
         return {
             "status": "success",
             "message": "Receipt processed successfully",
@@ -197,8 +225,13 @@ async def get_receipts(
     if offset < 0:
         raise HTTPException(status_code=400, detail="Offset cannot be negative")
 
-    # TODO: Fetch from MongoDB
-    return {"receipts": [], "total": 0}
+    # Fetch from MongoDB
+    try:
+        result = await get_all_receipts(limit=limit, offset=offset)
+        return result
+    except Exception as e:
+        print(f"Error fetching receipts: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch receipts")
 
 @app.get("/api/receipts/{receipt_id}")
 async def get_receipt(
@@ -214,8 +247,17 @@ async def get_receipt(
     # Sanitize receipt_id to prevent injection
     receipt_id = sanitize_user_input(receipt_id, max_length=50)
 
-    # TODO: Fetch from MongoDB
-    raise HTTPException(status_code=404, detail="Receipt not found")
+    # Fetch from MongoDB
+    try:
+        receipt = await get_receipt_by_id(receipt_id)
+        if not receipt:
+            raise HTTPException(status_code=404, detail="Receipt not found")
+        return receipt
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching receipt: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch receipt")
 
 @app.get("/api/dashboard/stats")
 async def get_dashboard_stats(
@@ -227,14 +269,79 @@ async def get_dashboard_stats(
 
     Rate limited to 50 requests per minute per IP
     """
-    return {
-        "money_at_risk": 127.50,
-        "receipts_expiring_soon": 3,
-        "total_receipts": 12,
-        "allergen_alerts_this_week": 5,
-        "health_score_avg": 68,
-        "paper_saved_count": 12
-    }
+    try:
+        # Get all receipts
+        all_receipts_data = await get_all_receipts(limit=1000, offset=0)
+        receipts = all_receipts_data.get("receipts", [])
+        total_receipts = all_receipts_data.get("total", 0)
+
+        # Calculate statistics
+        money_at_risk = 0.0
+        receipts_expiring_soon = 0
+        allergen_alerts_this_week = 0
+        health_scores = []
+        now = datetime.now(timezone.utc)
+        week_ago = now - timedelta(days=7)
+
+        for receipt in receipts:
+            # Calculate money at risk (receipts expiring in next 7 days)
+            if receipt.get("return_deadline"):
+                try:
+                    deadline = datetime.fromisoformat(receipt["return_deadline"].replace('Z', '+00:00'))
+                    days_until_expiry = (deadline - now).days
+                    if 0 <= days_until_expiry <= 7:
+                        receipts_expiring_soon += 1
+                        money_at_risk += receipt.get("total", 0)
+                except:
+                    pass
+
+            # Count allergen alerts from this week
+            if receipt.get("created_at"):
+                try:
+                    created_at = datetime.fromisoformat(receipt["created_at"].replace('Z', '+00:00'))
+                    if created_at >= week_ago:
+                        allergen_count = len(receipt.get("allergen_alerts", []))
+                        allergen_alerts_this_week += allergen_count
+                except:
+                    pass
+
+            # Collect health scores
+            if receipt.get("health_score"):
+                health_scores.append(receipt["health_score"])
+
+        # Calculate average health score
+        health_score_avg = int(sum(health_scores) / len(health_scores)) if health_scores else 50
+
+        # Generate health score trend (last 7 days)
+        health_score_trend = []
+        if health_scores:
+            # Simple trend: use last 7 scores or repeat avg if fewer
+            recent_scores = health_scores[-7:] if len(health_scores) >= 7 else health_scores
+            health_score_trend = recent_scores + [health_score_avg] * (7 - len(recent_scores))
+        else:
+            health_score_trend = [50] * 7
+
+        return {
+            "money_at_risk": round(money_at_risk, 2),
+            "receipts_expiring_soon": receipts_expiring_soon,
+            "total_receipts": total_receipts,
+            "allergen_alerts_this_week": allergen_alerts_this_week,
+            "health_score_avg": health_score_avg,
+            "paper_saved_count": total_receipts,
+            "health_score_trend": health_score_trend
+        }
+    except Exception as e:
+        print(f"Error calculating dashboard stats: {e}")
+        # Return default values on error
+        return {
+            "money_at_risk": 0,
+            "receipts_expiring_soon": 0,
+            "total_receipts": 0,
+            "allergen_alerts_this_week": 0,
+            "health_score_avg": 50,
+            "paper_saved_count": 0,
+            "health_score_trend": [50] * 7
+        }
 
 @app.post("/api/text-to-speech")
 async def text_to_speech(
@@ -267,13 +374,24 @@ async def update_user_profile(
 
     Rate limited to 50 requests per minute per IP
     """
-    # Sanitize profile data
-    profile.allergies = [sanitize_user_input(a, 50) for a in profile.allergies[:20]]
-    profile.dietary_preferences = [sanitize_user_input(d, 50) for d in profile.dietary_preferences[:20]]
-    profile.health_goals = [sanitize_user_input(g, 100) for g in profile.health_goals[:10]]
+    try:
+        # Sanitize profile data
+        profile.allergies = [sanitize_user_input(a, 50) for a in profile.allergies[:20]]
+        profile.dietary_preferences = [sanitize_user_input(d, 50) for d in profile.dietary_preferences[:20]]
+        profile.health_goals = [sanitize_user_input(g, 100) for g in profile.health_goals[:10]]
 
-    # TODO: Save to MongoDB
-    return {"status": "updated", "profile": profile}
+        # Save to MongoDB (using default user_id for now)
+        # In production, get user_id from authentication
+        user_id = "default_user"
+        profile_data = profile.dict()
+        profile_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+        await create_or_update_user_profile(user_id, profile_data)
+
+        return {"status": "updated", "profile": profile}
+    except Exception as e:
+        print(f"Error updating user profile: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update profile")
 
 if __name__ == "__main__":
     import uvicorn

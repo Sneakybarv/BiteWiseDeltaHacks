@@ -173,15 +173,15 @@ export default function DashboardPage() {
         <div className="card mb-8">
           <h2 className="text-2xl font-semibold mb-4">Health Score Trend</h2>
           <div className="flex items-end justify-between gap-2 h-48">
-            {currentStats.health_score_trend.map((score, index) => (
+            {currentStats.health_score_trend.map((score: number, index: number) => (
               <div key={index} className="flex-1 flex flex-col items-center gap-2">
-                <div
-                  className="w-full bg-blue-500 rounded-t"
-                  style={{ height: `${(score / 100) * 100}%` }}
-                  role="img"
-                  aria-label={`Day ${index + 1}: Score ${score}`}
-                />
-                <div className="text-xs text-gray-600">Day {index + 1}</div>
+              <div
+                className="w-full bg-blue-500 rounded-t"
+                style={{ height: `${(score / 100) * 100}%` }}
+                role="img"
+                aria-label={`Day ${index + 1}: Score ${score}`}
+              />
+              <div className="text-xs text-gray-600">Day {index + 1}</div>
               </div>
             ))}
           </div>

@@ -22,7 +22,8 @@ class Database:
         """Connect to MongoDB Atlas"""
         cls.client = AsyncIOMotorClient(
             MONGODB_URI,
-            server_api=ServerApi('1')
+            server_api=ServerApi('1'),
+            tlsAllowInvalidCertificates=True  # For development only
         )
         cls.db = cls.client.receipt_scanner
         print("Connected to MongoDB Atlas")
