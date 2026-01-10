@@ -58,7 +58,7 @@ export default function Home() {
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
             <Link href="/upload" className="btn-primary btn-large flex items-center gap-3">
               <FiCamera size={28} />
               <span>Scan Receipt</span>
@@ -117,7 +117,7 @@ export default function Home() {
               <div className="text-2xl font-semibold text-black mb-3">Fully Accessible ♿</div>
               <ul className="text-gray-600 space-y-2">
                 <li>✓ Screen Reader Support</li>
-                <li>✓ Keyboard navigation</li>
+                <li>✓ Keyboard Navigation</li>
                 <li>✓ Dark Mode</li>
                 {/* <li>✓ High contrast mode</li> */}
                 {/* <li>✓ Large text options</li> */}
@@ -150,8 +150,9 @@ export default function Home() {
         <section className="mb-16">
           <h2 className="text-3xl font-bold text-black text-center mb-8">Example Insights</h2>
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+
             {/* Allergen alert example */}
-            <div className="card border-l-4 border-red-500">
+            <div className="card border-l-4 border-red-500 text-white">
               <div className="flex items-start gap-4">
                 <div className="text-3xl">⚠️</div>
                 <div>

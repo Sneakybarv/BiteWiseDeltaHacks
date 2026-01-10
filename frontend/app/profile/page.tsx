@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { FiHeart, FiAlertTriangle, FiSettings, FiEdit3, FiTrendingUp } from 'react-icons/fi'
+import { useState } from 'react'
+import { FiHeart, FiAlertTriangle, FiEdit3 } from 'react-icons/fi'
 
 const mockProfile = {
   name: 'John Doe',
@@ -15,23 +15,76 @@ const mockProfile = {
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState(mockProfile)
+  const [isEditing, setIsEditing] = useState(false)
+  const [nameInput, setNameInput] = useState(profile.name)
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      setProfile({ ...profile, name: nameInput || 'John Doe' })
+      setIsEditing(false)
+    } else if (e.key === 'Escape') {
+      setNameInput(profile.name)
+      setIsEditing(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12">
       <div className="container mx-auto px-4 max-w-5xl">
+
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900">Profile</h1>
-          <button className="btn-primary flex items-center gap-2">
-            <FiEdit3 size={20} />
-            <span>Edit Profile</span>
-          </button>
+          {!isEditing ? (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="btn-primary flex items-center gap-2"
+            >
+              <FiEdit3 size={20} />
+              <span>Edit Profile</span>
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  setProfile({ ...profile, name: nameInput || 'John Doe' })
+                  setIsEditing(false)
+                }}
+              >
+                Save
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  setNameInput(profile.name)
+                  setIsEditing(false)
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Basic Info */}
         <div className="card mb-6 p-6 bg-white rounded-lg shadow-sm">
           <h2 className="text-2xl font-semibold text-black mb-4">Account Info</h2>
-          <div className="text-gray-700 mb-1"><strong>Name:</strong> {profile.name}</div>
+          <div className="text-gray-700 mb-1">
+            <strong>Name:</strong>{' '}
+            {isEditing ? (
+              <input
+                className="border rounded px-2 py-1"
+                value={nameInput}
+                placeholder="Enter Display Name"
+                onChange={e => setNameInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                autoFocus
+              />
+            ) : (
+              profile.name
+            )}
+          </div>
           <div className="text-gray-700"><strong>Email:</strong> {profile.email}</div>
         </div>
 
