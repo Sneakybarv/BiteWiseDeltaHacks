@@ -282,83 +282,130 @@ JSON Output:"""
             # Extract items with strict filtering to avoid OCR errors
             items = []
             lines = receipt_text.split('\n')
-            
+
             # Skip words that indicate non-item lines
-            skip_words = ['subtotal', 'total', 'tax', 'gst', 'pst', 'hst', 'qst', 'vat', 
-                         'amount', 'balance', 'change', 'tender', 'payment', 'cash', 
+            skip_words = ['subtotal', 'total', 'tax', 'gst', 'pst', 'hst', 'qst', 'vat',
+                         'amount', 'balance', 'change', 'tender', 'payment', 'cash',
                          'credit', 'debit', 'visa', 'mastercard', 'amex', 'card',
                          'received', 'refund', 'discount', 'coupon', 'savings',
                          'remaining', 'due', 'paid', 'ref num', 'cashier', 'thank',
-                         'visit', 'receipt', 'transaction', 'invoice', 'order']
-            
+                         'visit', 'receipt', 'transaction', 'invoice', 'order', 'take home',
+                         'made from', 'authentic', 'swedish', 'taste of']
+
+            # Track if we've seen the total line (items after total are usually promotional)
+            seen_total = False
+
             for line in lines:
                 line_lower = line.lower()
                 line_stripped = line.strip()
-                
+
                 # Skip empty or very short lines
                 if len(line_stripped) < 5:
                     continue
-                
+
+                # Stop processing after seeing "total to pay" or similar
+                if 'total' in line_lower and ('pay' in line_lower or re.search(r'\d{2,}\.\d{2}', line)):
+                    seen_total = True
+                    continue
+
+                # Skip everything after total (promotional text)
+                if seen_total:
+                    continue
+
                 # Skip lines with skip words
                 if any(skip in line_lower for skip in skip_words):
                     continue
-                
+
                 # Skip lines that look like headers (QTY, ITEM, PRICE, etc.)
                 if re.match(r'^(qty|item|price|amount|description|table|card|phone|address)', line_lower):
                     continue
-                
+
                 # Skip lines with too many special characters (likely OCR errors)
                 special_char_count = sum(1 for c in line if c in '—=*~@#$%^&()[]{}|\\<>')
                 if special_char_count > 3:
                     continue
-                
-                # Look for price patterns (must be reasonable price format)
+
+                # Look for item line pattern: [QTY] ItemName Price Amount
+                # Match lines with format like "4 Cheese Burger 5.99 23.96"
+                item_match = re.match(r'^\s*(\d+)\s+(.+?)\s+(\d{1,2}\.\d{2})\s+(\d{1,3}\.\d{2})', line)
+
+                if item_match:
+                    quantity = int(item_match.group(1))
+                    item_name = item_match.group(2).strip()
+                    unit_price = float(item_match.group(3))
+                    line_total = float(item_match.group(4))
+
+                    # Validate: quantity * unit_price should roughly equal line_total
+                    expected_total = quantity * unit_price
+                    if abs(expected_total - line_total) < 0.50:  # Allow small rounding differences
+                        # Clean item name
+                        item_name = re.sub(r'\s+', ' ', item_name).strip()
+
+                        if len(item_name) >= 3 and re.search(r'[a-zA-Z]{2,}', item_name):
+                            items.append({
+                                "name": item_name[:30],
+                                "price": line_total,  # Use line total, not unit price
+                                "quantity": quantity,
+                                "category": categorize_item(item_name, merchant)
+                            })
+                            continue
+
+                # Fallback: Look for simple price patterns (for items without quantity)
                 price_match = re.search(r'\b(\d{1,2}\.\d{2})\b', line)
                 if price_match:
                     price_value = float(price_match.group(1))
-                    
+
                     # Skip unreasonably high or low prices
-                    if price_value > 50 or price_value < 0.01:
+                    if price_value > 100 or price_value < 0.01:
                         continue
-                    
+
                     # Extract item name (everything before the price)
                     item_name = line[:price_match.start()].strip()
-                    
+
                     # Remove leading numbers (quantity indicators)
                     item_name = re.sub(r'^\d+\s+', '', item_name)
-                    
+
                     # Remove trailing numbers after the item name
                     item_name = re.sub(r'\s+\d+$', '', item_name)
-                    
+
                     # Clean whitespace
                     item_name = re.sub(r'\s+', ' ', item_name).strip()
-                    
+
                     # Validate item name: should contain at least one letter
                     if not re.search(r'[a-zA-Z]{2,}', item_name):
                         continue
-                    
+
                     # Minimum name length
                     if len(item_name) < 3:
                         continue
-                    
+
                     # Skip if name contains only special characters and numbers
                     if not re.search(r'[a-zA-Z]', item_name):
                         continue
-                    
+
                     items.append({
                         "name": item_name[:30],
                         "price": price_value,
+                        "quantity": 1,
                         "category": categorize_item(item_name, merchant)
                     })
             
-            # Find total
+            # Find total - look for "Total to Pay" or similar
             total = 0.0
             for line in lines:
-                if 'total' in line.lower():
-                    price_match = re.search(r'(\d+\.\d{2})', line)
-                    if price_match:
-                        total = float(price_match.group(1))
+                line_lower = line.lower()
+                # Look for total to pay, grand total, etc.
+                if ('total' in line_lower and ('pay' in line_lower or 'grand' in line_lower)) or \
+                   (line_lower.strip().startswith('total') and 'subtotal' not in line_lower):
+                    # Extract the last number on the line (usually the total)
+                    price_matches = re.findall(r'(\d{1,3}\.\d{2})', line)
+                    if price_matches:
+                        total = float(price_matches[-1])  # Take the last number
                         break
+
+            # If no total found, calculate from items
+            if total == 0.0 and items:
+                total = sum(item['price'] for item in items)
             
             # If no items found, use sample items
             if not items:

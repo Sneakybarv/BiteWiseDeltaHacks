@@ -353,6 +353,88 @@ async def get_dashboard_stats(
             "health_score_trend": [50] * 7
         }
 
+@app.post("/api/test-ocr")
+async def test_ocr(
+    request: Request,
+    file: UploadFile = File(...),
+    _: None = Depends(rate_limit_check)
+):
+    """
+    Test OCR extraction without using Gemini API
+    Returns raw OCR text and parsed items for debugging
+
+    Rate limited to 50 requests per minute per IP
+    """
+    try:
+        from gemini_service import extract_text_from_image
+        import re
+
+        # Validate content type
+        if not file.content_type or not file.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="File must be an image")
+
+        # Read and validate image
+        image_bytes = await file.read()
+        validate_image_upload(image_bytes, max_size_mb=10)
+
+        # Extract text using OCR only
+        ocr_text = extract_text_from_image(image_bytes)
+
+        # Try to extract basic info for debugging
+        lines = ocr_text.split('\n')
+
+        # Extract merchant
+        merchant = "Not found"
+        merchant_patterns = {
+            "McDonald's": r"mcdonald",
+            "Walmart": r"walmart",
+            "Target": r"target",
+            "IKEA": r"ikea",
+            "Starbucks": r"starbucks",
+            "Tim Hortons": r"tim\s*horton",
+        }
+        for name, pattern in merchant_patterns.items():
+            if re.search(pattern, ocr_text, re.IGNORECASE):
+                merchant = name
+                break
+
+        # Extract date
+        date_match = re.search(r'(\d{2}/\d{2}/\d{4})', ocr_text)
+        date_str = date_match.group(1) if date_match else "Not found"
+
+        # Extract items
+        items_found = []
+        for line in lines:
+            price_match = re.search(r'\b(\d{1,2}\.\d{2})\b', line)
+            if price_match:
+                price = float(price_match.group(1))
+                if 0.01 <= price <= 50:  # Reasonable price range
+                    item_name = line[:price_match.start()].strip()
+                    item_name = re.sub(r'^\d+\s+', '', item_name)  # Remove quantity
+                    if len(item_name) >= 3:
+                        items_found.append({
+                            "name": item_name,
+                            "price": price
+                        })
+
+        return {
+            "status": "success",
+            "ocr_text": ocr_text,
+            "ocr_text_length": len(ocr_text),
+            "extracted_info": {
+                "merchant": merchant,
+                "date": date_str,
+                "items_count": len(items_found),
+                "items": items_found[:10]  # First 10 items
+            }
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"Error in OCR test: {e}")
+        raise HTTPException(status_code=500, detail=f"OCR test failed: {str(e)}")
+
 @app.post("/api/text-to-speech")
 async def text_to_speech(
     text: str,

@@ -146,6 +146,30 @@ body {
   }
 }
 
+/* Dark mode */
+.dark {
+  --color-bg: #1a1a1a;
+  --color-text: #f0f0f0;
+  --color-border: #444444;
+}
+
+.dark body {
+  background: #1a1a1a;
+  color: #f0f0f0;
+}
+
+.dark .card {
+  @apply bg-gray-800 border-gray-700;
+}
+
+.dark .btn-secondary {
+  @apply bg-gray-700 text-gray-100 hover:bg-gray-600;
+}
+
+.dark .input {
+  @apply bg-gray-800 text-white border-gray-600;
+}
+
 /* Large text mode */
 .large-text {
   font-size: 1.25rem;

@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { FiTrendingUp, FiAlertTriangle, FiShoppingBag } from 'react-icons/fi'
-import { getDashboardStats } from '@/lib/api'
+import { FiTrendingUp, FiAlertTriangle, FiShoppingBag, FiShoppingCart } from 'react-icons/fi'
+import { getDashboardStats, getReceipts } from '@/lib/api'
 
 // Mock dashboard data
 const mockStats = {
@@ -16,45 +16,35 @@ const mockStats = {
   health_score_trend: [62, 65, 68, 72, 70, 68, 71],
 }
 
-const mockRecentReceipts = [
-  {
-    id: '1',
-    merchant: 'Whole Foods Market',
-    date: '2026-01-10',
-    total: 29.95,
-    health_score: 72,
-    expires_in: 82,
-  },
-  {
-    id: '2',
-    merchant: 'Target',
-    date: '2026-01-08',
-    total: 45.20,
-    health_score: 65,
-    expires_in: 84,
-  },
-  {
-    id: '3',
-    merchant: 'Trader Joe\'s',
-    date: '2026-01-05',
-    total: 38.50,
-    health_score: 78,
-    expires_in: 22,
-  },
-]
-
 export default function DashboardPage() {
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [receipts, setReceipts] = useState<any[]>([])
+  const [spendingByCategory, setSpendingByCategory] = useState<Record<string, number>>({})
 
   useEffect(() => {
-    async function fetchStats() {
+    async function fetchData() {
       try {
-        const data = await getDashboardStats()
-        setStats(data)
+        // Fetch dashboard stats
+        const statsData = await getDashboardStats()
+        setStats(statsData)
+
+        // Fetch receipts for spending analysis
+        const receiptsData = await getReceipts(100, 0)
+        setReceipts(receiptsData.receipts || [])
+
+        // Calculate spending by category
+        const categoryTotals: Record<string, number> = {}
+        receiptsData.receipts?.forEach((receipt: any) => {
+          receipt.items?.forEach((item: any) => {
+            const category = item.category || 'other'
+            categoryTotals[category] = (categoryTotals[category] || 0) + (item.price || 0)
+          })
+        })
+        setSpendingByCategory(categoryTotals)
       } catch (err: any) {
-        console.error('Error fetching dashboard stats:', err)
+        console.error('Error fetching dashboard data:', err)
         setError(err.message)
         // Use mock data as fallback
         setStats(mockStats)
@@ -62,7 +52,7 @@ export default function DashboardPage() {
         setLoading(false)
       }
     }
-    fetchStats()
+    fetchData()
   }, [])
 
   if (loading) {
@@ -74,15 +64,6 @@ export default function DashboardPage() {
   }
 
   const currentStats = stats || mockStats
-  const getDeadlineBadge = (daysLeft: number) => {
-    if (daysLeft > 7) {
-      return <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">{daysLeft} days left</span>
-    } else if (daysLeft > 0) {
-      return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-semibold">{daysLeft} days left</span>
-    } else {
-      return <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-semibold">Expired</span>
-    }
-  }
 
   const getHealthScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600'
@@ -169,30 +150,85 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Health Score Trend */}
-        <div className="card mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Health Score Trend</h2>
-          <div className="flex items-end justify-between gap-2 h-48">
-            {currentStats.health_score_trend.map((score: number, index: number) => (
-              <div key={index} className="flex-1 flex flex-col items-center gap-2">
-              <div
-                className="w-full bg-blue-500 rounded-t"
-                style={{ height: `${(score / 100) * 100}%` }}
-                role="img"
-                aria-label={`Day ${index + 1}: Score ${score}`}
-              />
-              <div className="text-xs text-gray-600">Day {index + 1}</div>
-              </div>
-            ))}
+        {/* Analytics Grid */}
+        <div className="grid lg:grid-cols-2 gap-8 mb-8">
+          {/* Health Score Trend */}
+          <div className="card">
+            <h2 className="text-2xl font-semibold mb-4">Health Score Trend</h2>
+            <div className="flex items-end justify-between gap-2 h-48">
+              {currentStats.health_score_trend.map((score: number, index: number) => (
+                <div key={index} className="flex-1 flex flex-col items-center gap-2">
+                <div
+                  className="w-full bg-blue-500 rounded-t"
+                  style={{ height: `${(score / 100) * 100}%` }}
+                  role="img"
+                  aria-label={`Day ${index + 1}: Score ${score}`}
+                />
+                <div className="text-xs text-gray-600">Day {index + 1}</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 text-center text-sm text-gray-600">
+              <span className={`font-semibold ${getHealthScoreColor(currentStats.health_score_avg)}`}>
+                Average: {currentStats.health_score_avg}
+              </span>
+              {' • '}
+              <span className="text-green-600">
+                Trend: {currentStats.health_score_trend[currentStats.health_score_trend.length - 1] > currentStats.health_score_trend[0] ? '↑ Improving' : '→ Stable'}
+              </span>
+            </div>
           </div>
-          <div className="mt-4 text-center text-sm text-gray-600">
-            <span className={`font-semibold ${getHealthScoreColor(currentStats.health_score_avg)}`}>
-              Average: {currentStats.health_score_avg}
-            </span>
-            {' • '}
-            <span className="text-green-600">
-              Trend: {currentStats.health_score_trend[currentStats.health_score_trend.length - 1] > currentStats.health_score_trend[0] ? '↑ Improving' : '→ Stable'}
-            </span>
+
+          {/* Spending by Category */}
+          <div className="card">
+            <h2 className="text-2xl font-semibold mb-4">Spending by Category</h2>
+            {Object.keys(spendingByCategory).length > 0 ? (
+              <div className="space-y-3">
+                {Object.entries(spendingByCategory)
+                  .sort(([, a], [, b]) => b - a)
+                  .slice(0, 6)
+                  .map(([category, amount]) => {
+                    const maxAmount = Math.max(...Object.values(spendingByCategory))
+                    const percentage = (amount / maxAmount) * 100
+                    const categoryIcons: Record<string, string> = {
+                      'produce': '🥬',
+                      'dairy': '🥛',
+                      'meat': '🥩',
+                      'bakery': '🍞',
+                      'snacks': '🍿',
+                      'beverages': '🥤',
+                      'other': '🛒'
+                    }
+                    return (
+                      <div key={category}>
+                        <div className="flex justify-between items-center mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{categoryIcons[category] || '🛒'}</span>
+                            <span className="font-semibold capitalize">{category}</span>
+                          </div>
+                          <span className="font-bold text-gray-900">${amount.toFixed(2)}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full"
+                            style={{ width: `${percentage}%` }}
+                            role="progressbar"
+                            aria-valuenow={amount}
+                            aria-valuemin={0}
+                            aria-valuemax={maxAmount}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-600">
+                <FiShoppingCart className="mx-auto text-4xl mb-2 text-gray-400" />
+                <p>No spending data yet</p>
+                <p className="text-sm">Upload receipts to see your spending breakdown</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -200,45 +236,48 @@ export default function DashboardPage() {
         <div className="card">
           <div className="flex justify-between text-black items-center mb-6">
             <h2 className="text-2xl font-semibold">Recent Receipts</h2>
-            <div className="flex gap-2">
-              <button className="btn-secondary text-sm">This Week</button>
-              <button className="text-sm px-4 py-2 text-gray-600 hover:text-gray-800">All Time</button>
-            </div>
+            <Link href="/receipts" className="btn-secondary text-sm">
+              View All
+            </Link>
           </div>
 
           <div className="space-y-4 text-black" role="list" aria-label="Recent receipts">
-            {mockRecentReceipts.map((receipt) => (
-              <div
-                key={receipt.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                role="listitem"
-              >
-                <div className="flex-1">
-                  <div className="font-semibold text-lg">{receipt.merchant}</div>
-                  <div className="text-sm text-gray-600">{receipt.date}</div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <div className="font-semibold">${receipt.total.toFixed(2)}</div>
-                    <div className={`text-sm font-semibold ${getHealthScoreColor(receipt.health_score)}`}>
-                      Health: {receipt.health_score}
+            {receipts.length > 0 ? (
+              receipts.slice(0, 5).map((receipt: any) => (
+                <div
+                  key={receipt._id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  role="listitem"
+                >
+                  <div className="flex-1">
+                    <div className="font-semibold text-lg">{receipt.merchant}</div>
+                    <div className="text-sm text-gray-600">
+                      {new Date(receipt.date).toLocaleDateString()} • {receipt.items?.length || 0} items
                     </div>
                   </div>
 
-                  <div>
-                    {getDeadlineBadge(receipt.expires_in)}
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <div className="font-semibold">${(receipt.total || 0).toFixed(2)}</div>
+                      {receipt.health_score !== undefined && (
+                        <div className={`text-sm font-semibold ${getHealthScoreColor(receipt.health_score)}`}>
+                          Health: {receipt.health_score}
+                        </div>
+                      )}
+                    </div>
                   </div>
-
-                  <Link
-                    href={`/receipts/${receipt.id}`}
-                    className="btn-secondary text-sm"
-                  >
-                    View
-                  </Link>
                 </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-600">
+                <FiShoppingBag className="mx-auto text-4xl mb-2 text-gray-400" />
+                <p>No receipts yet</p>
+                <Link href="/upload" className="btn-primary mt-4 inline-flex items-center gap-2">
+                  <FiShoppingBag size={20} />
+                  <span>Scan Your First Receipt</span>
+                </Link>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
