@@ -3,7 +3,7 @@ Receipt Scanner API - Accessibility-focused receipt processing
 FastAPI backend with Gemini AI and MongoDB integration
 """
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Request
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict
@@ -110,7 +110,8 @@ async def health_check():
 async def upload_receipt(
     request: Request,
     file: UploadFile = File(...),
-    _: None = Depends(rate_limit_check)
+    _: None = Depends(rate_limit_check),
+    x_user_id: Optional[str] = Header(None, alias="X-User-Id")
 ):
     """
     Upload and process receipt image using Gemini Vision API
@@ -148,13 +149,21 @@ async def upload_receipt(
         # Generate a temporary ID (database save is optional)
         receipt_data["id"] = f"temp_{int(datetime.now(timezone.utc).timestamp())}"
 
-        # Try to store receipt in database (completely optional)
+        # Attach user id if provided
+        if x_user_id:
+            receipt_data["user_id"] = sanitize_user_input(x_user_id, max_length=100)
+
+        # Try to store receipt in database
         try:
+            # Ensure created_at exists
+            if not receipt_data.get("created_at"):
+                receipt_data["created_at"] = datetime.now(timezone.utc).isoformat()
+
             receipt_id = await create_receipt(receipt_data.copy())
             receipt_data["id"] = receipt_id
         except Exception as db_error:
-            # Database errors are non-critical
-            print(f"Database save failed (non-critical): {str(db_error)[:100]}")
+            # Database errors are non-critical but log them
+            print(f"Database save failed (non-critical): {str(db_error)[:200]}")
             pass  # Continue with temp ID
 
         return {
@@ -459,7 +468,8 @@ async def text_to_speech(
 async def update_user_profile(
     profile: UserProfile,
     request: Request,
-    _: None = Depends(rate_limit_check)
+    _: None = Depends(rate_limit_check),
+    x_user_id: Optional[str] = Header(None, alias="X-User-Id")
 ):
     """
     Update user allergen and dietary preferences
@@ -472,9 +482,8 @@ async def update_user_profile(
         profile.dietary_preferences = [sanitize_user_input(d, 50) for d in profile.dietary_preferences[:20]]
         profile.health_goals = [sanitize_user_input(g, 100) for g in profile.health_goals[:10]]
 
-        # Save to MongoDB (using default user_id for now)
-        # In production, get user_id from authentication
-        user_id = "default_user"
+        # Determine user_id (from header or default)
+        user_id = sanitize_user_input(x_user_id, max_length=100) if x_user_id else "default_user"
         profile_data = profile.dict()
         profile_data["updated_at"] = datetime.now(timezone.utc).isoformat()
 
@@ -484,6 +493,30 @@ async def update_user_profile(
     except Exception as e:
         print(f"Error updating user profile: {e}")
         raise HTTPException(status_code=500, detail="Failed to update profile")
+
+
+@app.get("/api/users/{user_id}/receipts")
+async def get_user_receipts(
+    user_id: str,
+    request: Request,
+    limit: int = 20,
+    offset: int = 0,
+    _: None = Depends(rate_limit_check)
+):
+    """
+    Get receipts for a specific user with pagination
+    """
+    try:
+        user_id = sanitize_user_input(user_id, max_length=100)
+        if limit > 100:
+            raise HTTPException(status_code=400, detail="Limit cannot exceed 100")
+        result = await get_all_receipts(limit=limit, offset=offset, user_id=user_id)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching user receipts: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch user receipts")
 
 if __name__ == "__main__":
     import uvicorn
