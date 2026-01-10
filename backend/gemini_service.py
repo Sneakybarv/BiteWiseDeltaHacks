@@ -246,14 +246,28 @@ JSON Output:"""
         if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str or "quota" in error_str.lower():
             print("⚠️ Gemini API quota exhausted - using mock data from OCR text")
             
-            # Parse basic info from OCR text
-            merchant = "McDonald's"  # Default
-            if "mcdonald" in receipt_text.lower():
-                merchant = "McDonald's"
-            elif "walmart" in receipt_text.lower():
-                merchant = "Walmart"
-            elif "target" in receipt_text.lower():
-                merchant = "Target"
+            # Parse merchant from OCR text with better detection
+            merchant = "Unknown"
+            merchant_patterns = {
+                "McDonald's": r"mcdonald",
+                "Walmart": r"walmart",
+                "Target": r"target",
+                "IKEA": r"ikea",
+                "Starbucks": r"starbucks",
+                "Tim Hortons": r"tim\s*horton",
+                "Subway": r"subway",
+                "CVS": r"cvs",
+                "Walgreens": r"walgreens",
+                "Costco": r"costco",
+                "Whole Foods": r"whole\s*foods",
+                "Safeway": r"safeway",
+                "Kroger": r"kroger"
+            }
+            
+            for name, pattern in merchant_patterns.items():
+                if re.search(pattern, receipt_text, re.IGNORECASE):
+                    merchant = name
+                    break
             
             # Try to extract date with regex
             date_match = re.search(r'(\d{2}/\d{2}/\d{4})', receipt_text)
@@ -265,35 +279,77 @@ JSON Output:"""
                 except:
                     pass
             
-            # Extract items with basic regex
+            # Extract items with strict filtering to avoid OCR errors
             items = []
             lines = receipt_text.split('\n')
+            
+            # Skip words that indicate non-item lines
+            skip_words = ['subtotal', 'total', 'tax', 'gst', 'pst', 'hst', 'qst', 'vat', 
+                         'amount', 'balance', 'change', 'tender', 'payment', 'cash', 
+                         'credit', 'debit', 'visa', 'mastercard', 'amex', 'card',
+                         'received', 'refund', 'discount', 'coupon', 'savings',
+                         'remaining', 'due', 'paid', 'ref num', 'cashier', 'thank',
+                         'visit', 'receipt', 'transaction', 'invoice', 'order']
+            
             for line in lines:
                 line_lower = line.lower()
+                line_stripped = line.strip()
                 
-                # Skip lines that are clearly totals/taxes
-                if any(skip in line_lower for skip in ['subtotal', 'total', 'tax', 'gst', 'pst', 'hst', 'amount', 'balance', 'change', 'tender', 'payment', 'cash', 'credit', 'debit']):
+                # Skip empty or very short lines
+                if len(line_stripped) < 5:
                     continue
                 
-                # Look for price patterns
-                price_match = re.search(r'(\d+\.\d{2})', line)
-                if price_match and len(line.strip()) > 5:
+                # Skip lines with skip words
+                if any(skip in line_lower for skip in skip_words):
+                    continue
+                
+                # Skip lines that look like headers (QTY, ITEM, PRICE, etc.)
+                if re.match(r'^(qty|item|price|amount|description|table|card|phone|address)', line_lower):
+                    continue
+                
+                # Skip lines with too many special characters (likely OCR errors)
+                special_char_count = sum(1 for c in line if c in '—=*~@#$%^&()[]{}|\\<>')
+                if special_char_count > 3:
+                    continue
+                
+                # Look for price patterns (must be reasonable price format)
+                price_match = re.search(r'\b(\d{1,2}\.\d{2})\b', line)
+                if price_match:
                     price_value = float(price_match.group(1))
                     
-                    # Skip unreasonably high prices (likely totals)
-                    if price_value > 100:
+                    # Skip unreasonably high or low prices
+                    if price_value > 50 or price_value < 0.01:
                         continue
                     
-                    item_name = re.sub(r'\d+\.\d{2}', '', line).strip()
-                    item_name = re.sub(r'^\d+\s+', '', item_name)  # Remove leading numbers (qty)
-                    item_name = re.sub(r'\s+', ' ', item_name)  # Clean whitespace
+                    # Extract item name (everything before the price)
+                    item_name = line[:price_match.start()].strip()
                     
-                    if item_name and len(item_name) > 2:
-                        items.append({
-                            "name": item_name[:30],
-                            "price": price_value,
-                            "category": categorize_item(item_name, merchant)
-                        })
+                    # Remove leading numbers (quantity indicators)
+                    item_name = re.sub(r'^\d+\s+', '', item_name)
+                    
+                    # Remove trailing numbers after the item name
+                    item_name = re.sub(r'\s+\d+$', '', item_name)
+                    
+                    # Clean whitespace
+                    item_name = re.sub(r'\s+', ' ', item_name).strip()
+                    
+                    # Validate item name: should contain at least one letter
+                    if not re.search(r'[a-zA-Z]{2,}', item_name):
+                        continue
+                    
+                    # Minimum name length
+                    if len(item_name) < 3:
+                        continue
+                    
+                    # Skip if name contains only special characters and numbers
+                    if not re.search(r'[a-zA-Z]', item_name):
+                        continue
+                    
+                    items.append({
+                        "name": item_name[:30],
+                        "price": price_value,
+                        "category": categorize_item(item_name, merchant)
+                    })
             
             # Find total
             total = 0.0
