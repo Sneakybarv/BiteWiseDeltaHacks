@@ -77,3 +77,4 @@ receipts/
 # Build artifacts
 *.pyc
 .cache/
+.local/pids/
