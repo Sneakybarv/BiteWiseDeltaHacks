@@ -94,6 +94,7 @@ async def shutdown_event():
 class ReceiptItem(BaseModel):
     name: str
     price: Optional[float] = None
+    quantity: Optional[int] = 1
     category: Optional[str] = None
     allergens: List[str] = []
     health_flags: List[str] = []
@@ -607,7 +608,6 @@ async def get_user_receipts(
 async def issue_api_key(
     owner: Optional[str] = None,
     expires_hours: int = 24,
-    request: Request = None,
     x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key")
 ):
     """
