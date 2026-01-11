@@ -2,7 +2,7 @@
 
 An accessibility-first receipt scanner that transforms grocery and restaurant receipts into personalized health insights. Built for **DeltaHacks** with a focus on making health information accessible to everyone.
 
-## 🎯 Project Overview
+## Project Overview
 
 **Category Focus**: Best Accessibility Hack / Best Health Hack
 
@@ -23,30 +23,30 @@ Receipt Scanner helps users with visual impairments, dyslexia, ADHD, motor limit
 ## ✨ Features
 
 ### Accessibility
-- ♿ Full screen reader support with ARIA labels
-- 🔤 Large text mode with scalable fonts
-- 🌓 Dark mode option
-- 📱 Touch-friendly (44px+ tap targets)
+- Full screen reader support with ARIA labels
+- Large text mode with scalable fonts
+- Dark mode option
+- Touch-friendly (44px+ tap targets)
 
 ### Health Insights
-- 🚨 Allergen alerts (dairy, nuts, gluten, etc.)
-- 📊 Health score (0-100) with explanations
-- ⚠️ Nutrition warnings (high sugar, sodium, etc.)
-- 💡 Personalized suggestions
-- 🥗 Dietary profile tracking (vegan, vegetarian, etc.)
+- Allergen alerts (dairy, nuts, gluten, etc.)
+- Health score (0-100) with explanations
+- Nutrition warnings (high sugar, sodium, etc.)
+- Personalized suggestions
+- Dietary profile tracking (vegan, vegetarian, etc.)
 
 ### Smart Receipt Processing
-- 📸 OCR with Gemini Vision API
-- 🏪 Auto-detect store name and date
-- 🛒 Extract all items and prices
-- 📅 Calculate return deadlines
-- 💾 Store in MongoDB Atlas
+- OCR with Gemini Vision API
+- Auto-detect store name and date
+- Extract all items and prices
+- Calculate return deadlines
+- Store in MongoDB Atlas
 
 ### Sustainability
-- 🌱 Track digitized receipts (paper saved)
-- ♻️ Environmental impact insights
+- Track digitized receipts (paper saved)
+- Environmental impact insights
 
-## 🏗️ Tech Stack
+## Tech Stack
 
 ### Backend
 - **FastAPI** - Python web framework
@@ -61,7 +61,7 @@ Receipt Scanner helps users with visual impairments, dyslexia, ADHD, motor limit
 - **Web Speech API** - Text-to-speech and voice input
 - **React Icons** - Accessible icons
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Python 3.9+
@@ -144,7 +144,6 @@ Receipt Scanner helps users with visual impairments, dyslexia, ADHD, motor limit
 
 Located at the top of every page:
 
-- **High Contrast**: Black background, white text, enhanced colors
 - **Large Text**: 1.25x larger fonts throughout
 - **Dark Mode**: Reduce eye strain
 
