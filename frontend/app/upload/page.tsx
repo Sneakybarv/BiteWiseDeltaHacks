@@ -79,7 +79,7 @@ export default function UploadPage() {
   }
 
   const speakInstructions = () => {
-    const text = "Upload receipt page. You can drag and drop a receipt image, use the file picker button, or use your camera to capture a receipt. After uploading, click Generate Health Insights to analyze the receipt."
+    const text = "Upload receipt page. You can drag and drop a receipt image or use the file picker button. After uploading, click Generate Health Insights to analyze the receipt."
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.rate = 0.9
     window.speechSynthesis.speak(utterance)
@@ -93,11 +93,11 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-12">
+    <div className="min-h-screen bg-gradient-to-br py-12">
       <div className="container mx-auto px-4 max-w-4xl">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Upload Receipt</h1>
+          <h1 className="text-4xl font-bold">Upload Receipt</h1>
           <button
             onClick={speakInstructions}
             className="btn-secondary flex items-center gap-2"
@@ -268,14 +268,16 @@ export default function UploadPage() {
         )}
 
         {/* Accessibility notes */}
-        <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+        <div className="mt-8 p-4 rounded-lg border-2 transition-all
+            bg-blue-50 border-blue-200
+            hover:bg-blue-100 hover:border-blue-300
+            dark:bg-blue-900 dark:border-blue-700
+            dark:hover:bg-blue-800 dark:hover:border-blue-600">
+          <h3 className="font-semibold mb-2 flex items-center gap-2 text-blue-900 dark:text-blue-100">
             <span>♿</span> Accessibility Tips
           </h3>
-          <ul className="text-sm text-blue-800 space-y-1">
-            {/* <li>• Use keyboard: Tab to navigate, Enter/Space to activate buttons</li> */}
+          <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
             <li>• Drag & drop or click the upload area to select a file</li>
-            {/* <li>• On mobile, use camera button to take a photo directly</li> */}
             <li>• Screen readers will announce processing status</li>
           </ul>
         </div>

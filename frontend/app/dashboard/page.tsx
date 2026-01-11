@@ -72,7 +72,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12">
+    <div className="min-h-screen bg-gradient-to-br py-12">
       <div className="container mx-auto px-4 max-w-7xl">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
@@ -85,66 +85,67 @@ export default function DashboardPage() {
 
         {/* Key Metrics */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          
           {/* Money at Risk */}
-          <div className="card bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+          <div className="card bg-gradient-to-br !from-red-50 to-red-100 !border-red-200">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-red-200 rounded-lg">
-                <FiAlertTriangle className="text-3xl text-red-600" />
+              <div className="p-3 !bg-red-200 rounded-lg">
+                <FiAlertTriangle className="text-3xl !text-red-600" />
               </div>
               <div>
-                <div className="text-3xl font-bold text-red-700">
+                <div className="text-3xl font-bold !text-red-700">
                   ${currentStats.money_at_risk.toFixed(2)}
                 </div>
-                <div className="text-sm text-red-600 font-semibold">Money at Risk</div>
-                <div className="text-xs text-red-600">{currentStats.receipts_expiring_soon} receipts expiring soon</div>
+                <div className="text-sm !text-red-600 font-semibold">Money at Risk</div>
+                <div className="text-xs !text-red-600">{currentStats.receipts_expiring_soon} receipts expiring soon</div>
               </div>
             </div>
           </div>
 
           {/* Health Score */}
-          <div className="card bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <div className="card bg-gradient-to-br !from-blue-50 to-blue-100 !border-blue-200">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-200 rounded-lg">
-                <FiTrendingUp className="text-3xl text-blue-600" />
+              <div className="p-3 !bg-blue-200 rounded-lg">
+                <FiTrendingUp className="text-3xl !text-blue-600" />
               </div>
               <div>
                 <div className={`text-3xl font-bold ${getHealthScoreColor(currentStats.health_score_avg)}`}>
                   {currentStats.health_score_avg}
                 </div>
-                <div className="text-sm text-blue-600 font-semibold">Avg Health Score</div>
-                <div className="text-xs text-blue-600">This week</div>
+                <div className="text-sm !text-blue-600 font-semibold">Avg Health Score</div>
+                <div className="text-xs !text-blue-600">This week</div>
               </div>
             </div>
           </div>
 
           {/* Allergen Alerts */}
-          <div className="card bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+          <div className="card bg-gradient-to-br !from-yellow-50 to-yellow-100 !border-yellow-200">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-yellow-200 rounded-lg">
+              <div className="p-3 !bg-yellow-200 rounded-lg">
                 <span className="text-3xl">⚠️</span>
               </div>
               <div>
-                <div className="text-3xl font-bold text-yellow-700">
+                <div className="text-3xl font-bold !text-yellow-700">
                   {currentStats.allergen_alerts_this_week}
                 </div>
-                <div className="text-sm text-yellow-600 font-semibold">Allergen Alerts</div>
-                <div className="text-xs text-yellow-600">This week</div>
+                <div className="text-sm !text-yellow-600 font-semibold">Allergen Alerts</div>
+                <div className="text-xs !text-yellow-600">This week</div>
               </div>
             </div>
           </div>
 
           {/* Sustainability */}
-          <div className="card bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <div className="card bg-gradient-to-br !from-green-50 to-green-100 !border-green-200">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-200 rounded-lg">
+              <div className="p-3 !bg-green-200 rounded-lg">
                 <span className="text-3xl">🌿</span>
               </div>
               <div>
-                <div className="text-3xl font-bold text-green-700">
+                <div className="text-3xl font-bold !text-green-700">
                   {currentStats.paper_saved_count}
                 </div>
-                <div className="text-sm text-green-600 font-semibold">Receipts Digitized</div>
-                <div className="text-xs text-green-600">Paper saved!</div>
+                <div className="text-sm !text-green-600 font-semibold">Receipts Digitized</div>
+                <div className="text-xs !text-green-600">Paper saved!</div>
               </div>
             </div>
           </div>
@@ -285,7 +286,7 @@ export default function DashboardPage() {
         <div className="mt-8 grid md:grid-cols-3 gap-6">
           <Link href="/profile" className="card hover:shadow-xl transition-shadow text-center">
             <div className="text-6xl">👤</div>
-            <h3 className="font-semibold text-lg">Update Profile</h3>
+            <h3 className="font-semibold text-lg mt-5">Update Profile</h3>
             <p className="text-gray-600 text-sm">
               Set your allergen alerts and dietary preferences
             </p>
@@ -293,7 +294,7 @@ export default function DashboardPage() {
 
           <Link href="/insights" className="card hover:shadow-xl transition-shadow text-center">
             <div className="text-6xl">📊</div>
-            <h3 className="font-semibold text-lg">Weekly Insights</h3>
+            <h3 className="font-semibold text-lg mt-5">Weekly Insights</h3>
             <p className="text-gray-600 text-sm">
               View detailed nutrition and spending analysis
             </p>
@@ -301,7 +302,7 @@ export default function DashboardPage() {
 
           <Link href="/upload" className="card hover:shadow-xl transition-shadow text-center">
             <div className="text-6xl">📸</div>
-            <h3 className="font-semibold text-lg">Scan Receipt</h3>
+            <h3 className="font-semibold text-lg mt-5">Scan Receipt</h3>
             <p className="text-gray-600 text-sm">
               Add a new receipt to track your health
             </p>
