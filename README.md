@@ -3,10 +3,7 @@
 An accessibility-first receipt scanner that transforms grocery and restaurant receipts into personalized health insights. Built for **DeltaHacks** with a focus on making health information accessible to everyone.
 
 ## 👥 Team Members
-Barzin Vazifedoost
-Jason Yang
-Rehan Patel
-Pritika Lahiri
+Barzin Vazifedoost, Jason Yang, Rehan Patel, Pritika Lahiri
 
 ## Project Overview
 
