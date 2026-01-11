@@ -101,7 +101,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12">
+    <div className="min-h-screen bg-gradient-to-br py-12">
       <div className="container mx-auto px-4 max-w-5xl">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
