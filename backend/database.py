@@ -1,5 +1,7 @@
 """
 MongoDB Atlas database configuration and operations
+
+bash scripts/reset_and_run.sh
 """
 
 from motor.motor_asyncio import AsyncIOMotorClient

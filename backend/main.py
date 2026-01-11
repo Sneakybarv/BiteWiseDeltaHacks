@@ -93,6 +93,7 @@ async def shutdown_event():
 # Models
 class ReceiptItem(BaseModel):
     name: str
+    unit_price: Optional[float] = None
     price: Optional[float] = None
     quantity: Optional[int] = 1
     category: Optional[str] = None
@@ -105,6 +106,8 @@ class Receipt(BaseModel):
     date: str
     items: List[ReceiptItem]
     total: Optional[float] = None
+    subtotal: Optional[float] = None
+    tax: Optional[float] = None
     return_policy_days: Optional[int] = None
     return_deadline: Optional[str] = None
     image_url: Optional[str] = None
