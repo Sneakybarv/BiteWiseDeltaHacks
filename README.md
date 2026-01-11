@@ -11,7 +11,7 @@ Receipt Scanner helps users with visual impairments, dyslexia, ADHD, motor limit
 ### The Problem
 - Physical receipts are hard to read (small text, poor contrast, fading ink)
 - People with disabilities struggle to track allergens and nutrition
-- Health insights are often inaccessible to those who need them most
+- Health insights are often inaccessible to those whoc need them most
 
 ### Our Solution
 - **Read-aloud mode**: Full receipt summaries with text-to-speech
